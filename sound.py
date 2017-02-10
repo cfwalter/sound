@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from math import sin, pi
 import curses
 import random
