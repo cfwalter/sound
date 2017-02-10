@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from math import sin, pi
 import curses
 import random
@@ -8,9 +9,10 @@ PyAudio = pyaudio.PyAudio
 
 BITRATE = 2 ** 14 #number of frames per second/frameset.
 
+NOTES = ['A','A♯','B','C','C♯','D','D♯','E','F','F♯','G','G♯',]
 note = 0
 STEP = 2 ** (1/12) #Twelve steps to an octave
-LENGTH = .125 #seconds to play sound
+LENGTH = 1 / 16.0 #seconds to play sound
 
 MAX_VOLUME = 127.0
 volume_step = 10
@@ -54,9 +56,12 @@ while key != ord('q'):
                 volume_step = 20
 
         frequency = 440.0 * STEP ** note
+        sixth = 440.0 * STEP ** (note+6)
+        fourth = 440.0 * STEP ** (note+4)
         volume = volume_step * (MAX_VOLUME / 20)
 
-        stdscr.addstr(1, 2, str.format('{0:.2f} Hz', frequency) + ' ' * 80)
+        # stdscr.addstr(1, 2, str.format('{0:.2f} Hz', frequency) + ' ' * 80)
+        stdscr.addstr(1, 2, NOTES[note % 12] + ' ' * 80)
         stdscr.addstr(2, 2, str(int(100*(volume/MAX_VOLUME) + 0.5)) + '%' + ' ' * 80)
 
         # stdscr.addstr(4, 2, str.format('{0:.2f} Hz', answer_frequency) + ' ' * 80)
