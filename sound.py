@@ -9,7 +9,8 @@ PyAudio = pyaudio.PyAudio
 #See http://en.wikipedia.org/wiki/Bit_rate#Audio
 BITRATE = 16000 #number of frames per second/frameset.
 
-frequency = 500 #Hz, waves per second, 261.63=C4-note.
+frequency = 512 #Hz, waves per second, 261.63=C4-note.
+NOTE = 2 ** (1/12)
 LENGTH = .125 #seconds to play sound
 
 volume = 64
@@ -45,15 +46,20 @@ stdscr.nodelay(1)
 
 stdscr.addstr(0,0,"Hit 'q' to quit")
 stdscr.refresh()
+b = True
+counter = 0
 while key != ord('q'):
     try:
+        counter += 1
+        # if (counter % 8 == 0):
+        #     b = not b
         key = stdscr.getch()
         stdscr.refresh()
 
         if key == curses.KEY_UP:
-            frequency = frequency * 1.25
+            frequency = frequency * NOTE
         elif key == curses.KEY_DOWN:
-            frequency = frequency * 0.8
+            frequency = frequency / NOTE
         elif key == curses.KEY_LEFT:
             volume -= 10
             if (volume < 0):
@@ -66,16 +72,25 @@ while key != ord('q'):
         stdscr.addstr(1, 2, str.format('{0:.2f}', frequency) + ' ' * 80)
         # stdscr.addstr(1, 2, str(BITRATE) + ' ' * 80)
         stdscr.addstr(2, 2, str(int(100*(volume/MAX_VOLUME))) + '%' + ' ' * 80)
+        if(b):
+            stdscr.addstr(3, 2, 'bytes ')
+        else:
+            stdscr.addstr(3, 2, 'string')
         stdscr.move(4,2)
 
         WAVEDATA = ''
+        wave_bytes = bytearray()
         for i in range(NUMBEROFFRAMES):
-            t = i / (BITRATE/frequency)/ math.pi
+            t = i/( (BITRATE/frequency)/math.pi )
             wave = math.sin(t)
-            # WAVEDATA += chr( int( wave * volume + 128))
-            WAVEDATA = WAVEDATA + chr( int( math.sin( i/( (BITRATE/frequency)/math.pi ) ) * 127+128))
+            WAVEDATA += chr( int( wave * volume + 128))
+            wave_bytes.append( int( wave * volume + 128) )
+            # WAVEDATA = WAVEDATA + chr( int( math.sin( i/( (BITRATE/frequency)/math.pi ) ) * 127+128))
 
-        stream.write(WAVEDATA)
+        if(b):
+            stream.write(bytes(wave_bytes))
+        else:
+            stream.write(WAVEDATA)
     except Exception as e:
         key = ord('q')
         error_message = e
