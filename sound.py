@@ -14,21 +14,11 @@ tone = 0
 NOTE = 2 ** (1/12) #Twelve steps to an octave
 LENGTH = .125 #seconds to play sound
 
-frequency = 440.0 * NOTE ** tone
-periods = int(frequency * LENGTH) # number of whole periods in the LENGTH
-interval = periods / frequency
-
 MAX_VOLUME = 127.0
 volume_step = 10
 
 answer_frequency = 440.0 * NOTE ** random.randint(-24,24) # within 2 octaves of A_4
 answer_volume = random.randint(0,20) * (MAX_VOLUME / 20)
-
-if frequency > BITRATE:
-    BITRATE = frequency+100
-
-frames = int(BITRATE * interval)
-RESTFRAMES = frames % BITRATE
 
 key = ''
 error_message = ''
@@ -99,6 +89,7 @@ while key != ord('q'):
             t = i / ( (BITRATE/frequency)/pi )
             wave = sin(t)
             wave_bytes.append( int( wave * volume + 128) )
+
             t = i / ( (BITRATE/answer_frequency)/pi )
             wave = sin(t)
             wave_bytes.append( int( wave * answer_volume + 128) )
