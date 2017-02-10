@@ -6,18 +6,16 @@ import pyaudio
 
 PyAudio = pyaudio.PyAudio
 
-#See http://en.wikipedia.org/wiki/Bit_rate#Audio
-# BITRATE = 16000 #number of frames per second/frameset.
 BITRATE = 2 ** 14 #number of frames per second/frameset.
 
-tone = 0
-NOTE = 2 ** (1/12) #Twelve steps to an octave
+note = 0
+STEP = 2 ** (1/12) #Twelve steps to an octave
 LENGTH = .125 #seconds to play sound
 
 MAX_VOLUME = 127.0
 volume_step = 10
 
-answer_frequency = 440.0 * NOTE ** random.randint(-24,24) # within 2 octaves of A_4
+answer_frequency = 440.0 * STEP ** random.randint(-24,24) # within 2 octaves of A_4
 answer_volume = random.randint(0,20) * (MAX_VOLUME / 20)
 
 key = ''
@@ -43,9 +41,9 @@ while key != ord('q'):
         stdscr.refresh()
 
         if key == curses.KEY_UP:
-            tone += 1
+            note += 1
         elif key == curses.KEY_DOWN:
-            tone -= 1
+            note -= 1
         elif key == curses.KEY_LEFT:
             volume_step -= 1
             if (volume_step < 0):
@@ -55,7 +53,7 @@ while key != ord('q'):
             if (volume_step > 20):
                 volume_step = 20
 
-        frequency = 440.0 * NOTE ** tone
+        frequency = 440.0 * STEP ** note
         volume = volume_step * (MAX_VOLUME / 20)
 
         stdscr.addstr(1, 2, str.format('{0:.2f} Hz', frequency) + ' ' * 80)
