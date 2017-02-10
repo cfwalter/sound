@@ -1,6 +1,6 @@
-import math
+from math import sin, pi
 import curses
-import os
+import random
 
 import pyaudio
 
@@ -10,18 +10,25 @@ PyAudio = pyaudio.PyAudio
 # BITRATE = 16000 #number of frames per second/frameset.
 BITRATE = 2 ** 14 #number of frames per second/frameset.
 
-frequency = 440 #Hz, waves per second, 440 = A_4
+tone = 0
 NOTE = 2 ** (1/12) #Twelve steps to an octave
 LENGTH = .125 #seconds to play sound
 
+frequency = 440.0 * NOTE ** tone
+periods = int(frequency * LENGTH) # number of whole periods in the LENGTH
+interval = periods / frequency
+
 MAX_VOLUME = 127.0
-volume = 64
+volume_step = 10
+
+answer_frequency = 440.0 * NOTE ** random.randint(-24,24) # within 2 octaves of A_4
+answer_volume = random.randint(0,20) * (MAX_VOLUME / 20)
 
 if frequency > BITRATE:
     BITRATE = frequency+100
 
-NUMBEROFFRAMES = int(BITRATE * LENGTH)
-RESTFRAMES = NUMBEROFFRAMES % BITRATE
+frames = int(BITRATE * interval)
+RESTFRAMES = frames % BITRATE
 
 key = ''
 error_message = ''
@@ -30,7 +37,6 @@ stream = p.open(format = p.get_format_from_width(1),
                 channels = 2,
                 rate = BITRATE,
                 output = True)
-os.system('clear')
 
 stdscr = curses.initscr()
 curses.cbreak()
@@ -47,27 +53,55 @@ while key != ord('q'):
         stdscr.refresh()
 
         if key == curses.KEY_UP:
-            frequency = frequency * NOTE
+            tone += 1
         elif key == curses.KEY_DOWN:
-            frequency = frequency / NOTE
+            tone -= 1
         elif key == curses.KEY_LEFT:
-            volume -= 10
-            if (volume < 0):
-                volume = 0
+            volume_step -= 1
+            if (volume_step < 0):
+                volume_step = 0
         elif key == curses.KEY_RIGHT:
-            volume += MAX_VOLUME / 20
-            if (volume > MAX_VOLUME):
-                volume = MAX_VOLUME
+            volume_step += 1
+            if (volume_step > 20):
+                volume_step = 20
+
+        frequency = 440.0 * NOTE ** tone
+        volume = volume_step * (MAX_VOLUME / 20)
 
         stdscr.addstr(1, 2, str.format('{0:.2f} Hz', frequency) + ' ' * 80)
-        stdscr.addstr(2, 2, str(int(100*(volume/MAX_VOLUME))) + '%' + ' ' * 80)
-        stdscr.move(4,2)
+        stdscr.addstr(2, 2, str(int(100*(volume/MAX_VOLUME) + 0.5)) + '%' + ' ' * 80)
+
+        # stdscr.addstr(4, 2, str.format('{0:.2f} Hz', answer_frequency) + ' ' * 80)
+        # stdscr.addstr(5, 2, str(int(100*(answer_volume/MAX_VOLUME) + 0.5)) + '%' + ' ' * 80)
+
+        if frequency == answer_frequency:
+            stdscr.addstr(1, 0, '*')
+            # stdscr.addstr(7, 0, ' ' * 80)
+        else:
+            stdscr.addstr(1, 0, ' ')
+            # stdscr.addstr(7, 0, str(answer_frequency - frequency) + ' ' * 80)
+
+        if volume == answer_volume:
+            stdscr.addstr(2, 0, '*')
+            # stdscr.addstr(8, 0, ' ' * 80)
+        else:
+            stdscr.addstr(2, 0, ' ')
+            # stdscr.addstr(8, 0, str(answer_volume - volume) + ' ' * 80)
+
+        stdscr.move(10,2)
+
+        periods = int(frequency * LENGTH) # number of whole periods in the LENGTH
+        interval = periods / frequency
+        frames = int(BITRATE * interval) * 2
 
         wave_bytes = bytearray()
-        for i in range(NUMBEROFFRAMES):
-            t = i/( (BITRATE/frequency)/math.pi )
-            wave = math.sin(t)
+        for i in range(frames):
+            t = i / ( (BITRATE/frequency)/pi )
+            wave = sin(t)
             wave_bytes.append( int( wave * volume + 128) )
+            t = i / ( (BITRATE/answer_frequency)/pi )
+            wave = sin(t)
+            wave_bytes.append( int( wave * answer_volume + 128) )
 
         stream.write(bytes(wave_bytes))
 
