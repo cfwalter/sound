@@ -9,11 +9,13 @@ from wave import wave
 PyAudio = pyaudio.PyAudio
 
 BITRATE = 2 ** 14 #number of frames per second/frameset.
+time = 0.0
 
 NOTES = ['A','A♯','B','C','C♯','D','D♯','E','F','F♯','G','G♯',]
 note = 0
 STEP = 2 ** (1/12) #Twelve steps to an octave
-LENGTH = 1 / 16.0 #seconds to play sound
+LENGTH = 1 / 8.0 #seconds to play sound
+FRAMES = int(LENGTH * BITRATE)
 
 MAX_VOLUME = 127.0
 volume_step = 20
@@ -58,9 +60,11 @@ while key != ord('q'):
         stdscr.refresh()
 
         if key == curses.KEY_UP:
-            note += 1
+            if note < 12:
+                note += 1
         elif key == curses.KEY_DOWN:
-            note -= 1
+            if note > -12:
+                note -= 1
 
         frequency = 440.0 * STEP ** note
         volume = volume_step * (MAX_VOLUME / 20)
@@ -71,31 +75,27 @@ while key != ord('q'):
 
         stdscr.move(10,2)
 
-        periods = int(frequency * LENGTH) # number of whole periods in the LENGTH
-        interval = periods / frequency
-        frames = int(BITRATE * interval) * 2
-
         if target_position >= TARGET_FRAMES:
             if frequency >= target_frequency / STEP and frequency <= target_frequency * STEP:
                 score += 1
-                wave_bytes, target_position = wave(
-                    frames=frames, left=[frequency], right=[target_frequency],
+                wave_bytes, target_position, time = wave(
+                    frames=FRAMES, left=[frequency], right=[target_frequency],
                     position=target_position, max_position=TARGET_FRAMES, volume=MAX_VOLUME,
-                    bitrate=BITRATE)
+                    bitrate=BITRATE, time=time)
             else:
                 health -= 1
-                wave_bytes, target_position = wave(
-                    frames=frames, left=health_tones[:health], right=health_tones[:health],
+                wave_bytes, target_position, time = wave(
+                    frames=FRAMES*4, left=health_tones[:health], right=health_tones[:health],
                     position=1, max_position=1, volume=MAX_VOLUME,
-                    bitrate=BITRATE)
+                    bitrate=BITRATE, time=time)
             target_frequency = 440.0 * STEP ** random.randint(-12,12) # within 1 octave of A_4
             target_position = 0
 
         else:
-            wave_bytes, target_position = wave(
-                    frames=frames, left=[frequency], right=[target_frequency],
+            wave_bytes, target_position, time = wave(
+                    frames=FRAMES, left=[frequency], right=[target_frequency],
                     position=target_position, max_position=TARGET_FRAMES, volume=MAX_VOLUME,
-                    bitrate=BITRATE)
+                    bitrate=BITRATE, time=time)
 
         stream.write(bytes(wave_bytes))
         if health <= 0:
