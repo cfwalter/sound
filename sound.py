@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-from math import sin, pi
 import curses
 import random
 
 import pyaudio
+
+from wave import wave
 
 PyAudio = pyaudio.PyAudio
 
@@ -15,10 +16,24 @@ STEP = 2 ** (1/12) #Twelve steps to an octave
 LENGTH = 1 / 16.0 #seconds to play sound
 
 MAX_VOLUME = 127.0
-volume_step = 10
+volume_step = 20
 
-answer_frequency = 440.0 * STEP ** random.randint(-24,24) # within 2 octaves of A_4
-answer_volume = random.randint(0,20) * (MAX_VOLUME / 20)
+TARGET_FRAMES = BITRATE * 5.0 # the ball takes 1 second to traverse the court
+target_position = 0
+target_frequency = 440.0 * STEP ** random.randint(-12,12) # within 1 octave of A_4
+
+
+score = 0
+
+health_tones = [
+    440.0 * STEP ** 0,
+    440.0 * STEP ** 2,
+    440.0 * STEP ** 4,
+    440.0 * STEP ** 9,
+    440.0 * STEP ** 11,
+]
+
+health = len(health_tones)
 
 key = ''
 error_message = ''
@@ -46,40 +61,13 @@ while key != ord('q'):
             note += 1
         elif key == curses.KEY_DOWN:
             note -= 1
-        elif key == curses.KEY_LEFT:
-            volume_step -= 1
-            if (volume_step < 0):
-                volume_step = 0
-        elif key == curses.KEY_RIGHT:
-            volume_step += 1
-            if (volume_step > 20):
-                volume_step = 20
 
         frequency = 440.0 * STEP ** note
-        sixth = 440.0 * STEP ** (note+6)
-        fourth = 440.0 * STEP ** (note+4)
         volume = volume_step * (MAX_VOLUME / 20)
 
-        # stdscr.addstr(1, 2, str.format('{0:.2f} Hz', frequency) + ' ' * 80)
         stdscr.addstr(1, 2, NOTES[note % 12] + ' ' * 80)
-        stdscr.addstr(2, 2, str(int(100*(volume/MAX_VOLUME) + 0.5)) + '%' + ' ' * 80)
-
-        # stdscr.addstr(4, 2, str.format('{0:.2f} Hz', answer_frequency) + ' ' * 80)
-        # stdscr.addstr(5, 2, str(int(100*(answer_volume/MAX_VOLUME) + 0.5)) + '%' + ' ' * 80)
-
-        if frequency == answer_frequency:
-            stdscr.addstr(1, 0, '*')
-            # stdscr.addstr(7, 0, ' ' * 80)
-        else:
-            stdscr.addstr(1, 0, ' ')
-            # stdscr.addstr(7, 0, str(answer_frequency - frequency) + ' ' * 80)
-
-        if volume == answer_volume:
-            stdscr.addstr(2, 0, '*')
-            # stdscr.addstr(8, 0, ' ' * 80)
-        else:
-            stdscr.addstr(2, 0, ' ')
-            # stdscr.addstr(8, 0, str(answer_volume - volume) + ' ' * 80)
+        stdscr.addstr(3, 2, str(score) + ' points')
+        stdscr.addstr(4, 2, str(health) + ' health')
 
         stdscr.move(10,2)
 
@@ -87,17 +75,31 @@ while key != ord('q'):
         interval = periods / frequency
         frames = int(BITRATE * interval) * 2
 
-        wave_bytes = bytearray()
-        for i in range(frames):
-            t = i / ( (BITRATE/frequency)/pi )
-            wave = sin(t)
-            wave_bytes.append( int( wave * volume + 128) )
+        if target_position >= TARGET_FRAMES:
+            if frequency >= target_frequency / STEP and frequency <= target_frequency * STEP:
+                score += 1
+                wave_bytes, target_position = wave(
+                    frames=frames, left=[frequency], right=[target_frequency],
+                    position=target_position, max_position=TARGET_FRAMES, volume=MAX_VOLUME,
+                    bitrate=BITRATE)
+            else:
+                health -= 1
+                wave_bytes, target_position = wave(
+                    frames=frames, left=health_tones[:health], right=health_tones[:health],
+                    position=1, max_position=1, volume=MAX_VOLUME,
+                    bitrate=BITRATE)
+            target_frequency = 440.0 * STEP ** random.randint(-12,12) # within 1 octave of A_4
+            target_position = 0
 
-            t = i / ( (BITRATE/answer_frequency)/pi )
-            wave = sin(t)
-            wave_bytes.append( int( wave * answer_volume + 128) )
+        else:
+            wave_bytes, target_position = wave(
+                    frames=frames, left=[frequency], right=[target_frequency],
+                    position=target_position, max_position=TARGET_FRAMES, volume=MAX_VOLUME,
+                    bitrate=BITRATE)
 
         stream.write(bytes(wave_bytes))
+        if health <= 0:
+            break
 
     except Exception as e:
         key = ord('q')
