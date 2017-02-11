@@ -20,6 +20,6 @@ def wave(frames, left, right, position, max_position, volume, bitrate, time):
             x = 2*pi * t * frequency
             wave += sin(x)
         wave = wave / len(right)
-        wave_bytes.append( int( wave * percent * volume + 128) )
+        wave_bytes.append( int( wave * percent * percent * volume + 128) )
 
     return wave_bytes, position, (time + frames / bitrate)

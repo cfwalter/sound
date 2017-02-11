@@ -29,13 +29,18 @@ score = 0
 
 health_tones = [
     440.0 * STEP ** 0,
-    440.0 * STEP ** 2,
-    440.0 * STEP ** 4,
-    440.0 * STEP ** 9,
-    440.0 * STEP ** 11,
+    440.0 * STEP ** 1,
+    440.0 * STEP ** 3,
+    440.0 * STEP ** 8,
+    440.0 * STEP ** 10,
 ]
 
 health = len(health_tones)
+
+score_tones = [
+    440.0 * STEP ** 9,
+    440.0 * STEP ** 14,
+]
 
 key = ''
 error_message = ''
@@ -79,8 +84,8 @@ while key != ord('q'):
             if frequency >= target_frequency / STEP and frequency <= target_frequency * STEP:
                 score += 1
                 wave_bytes, target_position, time = wave(
-                    frames=FRAMES, left=[frequency], right=[target_frequency],
-                    position=target_position, max_position=TARGET_FRAMES, volume=MAX_VOLUME,
+                    frames=FRAMES*2, left=score_tones, right=score_tones,
+                    position=1, max_position=1, volume=MAX_VOLUME,
                     bitrate=BITRATE, time=time)
             else:
                 health -= 1
